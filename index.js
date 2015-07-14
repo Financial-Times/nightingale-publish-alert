@@ -3,16 +3,22 @@ var request = require('superagent');
 var Q = require('q');
 var cheerio = require('cheerio');
 var fs = require('fs');
-var lastPolled = null;
+var http = require('http');
 
+
+var lastPolled = null;
 var ftApiURLRoot = 'http://api.ft.com';
+// var stamperUrl = 'http://png-stamper.herokuapp.com';
+var stamperUrl = 'http://0.0.0.0:3000';
+
+
 
 function getUpdates() {
   // http://api.ft.com/content/notifications?since=2015-07-03&apiKey=dvc53bhjv2nhneqda6xgvjfm
 
   if (!lastPolled) {
     // start polling three hours ago
-    lastPolled = new Date(new Date().getTime() - 108e5);
+    lastPolled = new Date(new Date().getTime() - 3 * 60 * 60 * 1000);
   }
 
   var deferred = Q.defer();
@@ -27,7 +33,7 @@ function getUpdates() {
       if (err) {
         return deferred.reject(err);
       }
-      debugger;
+
       deferred.resolve(response.body.notifications);
     });
 
@@ -58,14 +64,14 @@ function checkForPNGs(promise) {
   }
   var articleJSON = promise.value;
   var imageSetUrls = [];
-  debugger;
+
   var $ = cheerio.load(articleJSON.bodyXML);
 
   $('ft-content[type*="/ImageSet"]')
     .each(function(d) {
       imageSetUrls.push(this.attribs.url);
     });
-  debugger;
+
   var promises = imageSetUrls.map(function(url) {
     var deferred = Q.defer();
     request
@@ -77,7 +83,6 @@ function checkForPNGs(promise) {
         if (err) {
           return deferred.reject(err);
         }
-        debugger;
         var url = response.body.members[0].id;
         request
           .get(url)
@@ -87,7 +92,6 @@ function checkForPNGs(promise) {
             if (err) {
               return deferred.reject(err);
             }
-            debugger;
             deferred.resolve(response.body.binaryUrl);
           });
       });
@@ -95,30 +99,60 @@ function checkForPNGs(promise) {
   });
 
   Q.allSettled(promises).then(function(urls) {
-    debugger;
     urls.map(downloadImage);
   });
 
 }
 
 function downloadImage(promise)  {
-  debugger;
   if (promise.state !== 'fulfilled') return;
   var url = promise.value;
   var path = require('path');
   var uuid = path.basename(url);
-  var filePath = path.join('tmp', uuid);
-  console.log('loading image from s3:', uuid);
+  var filePath = path.join('tmp', uuid + '.png');
+  // console.log('loading image from s3:', uuid);
   request
     .get(url)
     .end(function(err, response) {
-      console.log('done loading');
-      fs.writeFile(filePath, response.body, function(err) {
-        if (err) {
-          console.log('error writing', url);
+      if (response.headers['content-type'] !== 'image/png') {
+        return;
+      }
+      console.log('Found a png - looking for stamps');
+      var req = http.request({
+        hostname: '127.0.0.1',
+        port: 3000,
+        method: 'POST',
+        path: '/read',
+        headers: {
+          'Content-Type': 'image/png'
         }
-        console.log("done with", url);
+      }, function(res) {
+        res.on('data', function(err, data) {
+          var stamps = JSON.parse(err.toString('utf-8'));
+          console.log("Stamps for", url);
+          stamps.forEach(function(s) {
+            console.log(s);
+          });
+        });
       });
+      req.write(response.body);
+      req.end();
+
+
+      // fs.writeFile(filePath, response.body, function(err) {
+      //   if (err) {
+      //     console.log('error writing', url);
+      //   }
+      //
+      //   console.log("done writing", url);
+      //   request
+      //     .post(stamperUrl + '/read')
+      //     .set('Content-Type', 'image/png')
+      //     .send(response.body)
+      //     .end(function(err, response) {
+      //       debugger;
+      //     });
+      // });
     });
 }
 
@@ -138,7 +172,6 @@ function poll() {
 
       Q.allSettled(promises).then(function(articleJSONs) {
         console.log("all articles loaded");
-        debugger;
         return articleJSONs.map(checkForPNGs);
       });
 
