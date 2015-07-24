@@ -11,13 +11,20 @@ app.get('/', function (req, res) {
 });
 
 
-var poller = require('./src/poller');
+var Poller = require('./src/poller');
+
+var poller = new Poller();
 
 setInterval(function() {
   poller.poll();
 }, 1 * 60 * 1000);
 
-poller.poll();
+poller.poll()
+  .then(function(articles) {
+    var artsWithNightingale = _.filter(articles, {'hasNightingale': true});
+
+    logger.log('info', JSON.stringify(artsWithNightingale, null, 2));
+  });
 
 
 

@@ -5,6 +5,7 @@ var http = require('http');
 var moment = require('moment');
 var url = require('url');
 var cheerio = require('cheerio');
+var _ = require('underscore');
 
 var lastPolled = null;
 var ftApiURLRoot = process.env.FT_API_URL;
@@ -37,18 +38,12 @@ function getNotifications() {
 }
 
 function processNotification(notification) {
-
-  var deferred = Q.defer();
-
-  fetchArticle(notification)
+  return fetchArticle(notification)
     .then(checkForPNGs)
     .then(function(stamps) {
       logger.log('verbose', 'Notification processed', notification.uuid);
-      deferred.resolve(stamps);
+      return stamps;
     });
-
-  return deferred.promise;
-
 }
 
 
@@ -78,7 +73,6 @@ function fetchArticle(notification) {
 
 function checkForPNGs(articleJSON) {
   // var articleJSON = promise.value;
-  var deferred = Q.defer();
   var imageSetUrls = [];
 
   var $ = cheerio.load(articleJSON.bodyXML);
@@ -91,41 +85,57 @@ function checkForPNGs(articleJSON) {
   logger.log('debug', 'Checking article for PNG images');
   var promises = imageSetUrls.map(crawlImageSet);
 
-  Q.allSettled(promises).then(function(urls) {
-    if (!urls.length) {
-      return;
-    }
-    logger.log('verbose', 'All ImageSets crawled, found %s images', urls.length);
-    var promises = urls.map(downloadImage);
-
-    Q.allSettled(promises).then(function(stamps) {
-      var procStamps = [];
-      stamps.forEach(function(s) {
-        if (s.state != 'fulfilled') {
-          return;
-        }
-
-        if (!s.value) {
-          return;
-        }
-
-        var val = s.value;
-        procStamps.push(val)
-        logger.log('verbose', 'Stamps %j', val, {});
-      });
-      if (!procStamps) {
-        deferred.reject(procStamps);
+  return Q.allSettled(promises)
+    .then(function(urls) {
+      if (!urls.length) {
+        return;
       }
+      logger.log('verbose', 'All ImageSets crawled, found %s images', urls.length);
+      var promises = urls.map(downloadImage);
 
-      logger.log('info', 'The article %s contained the following stamps %j', articleJSON.id, procStamps, {});
+      return Q.allSettled(promises)
+        .then(function(stamps) {
+          var procStamps = [];
+          stamps.forEach(function(s, i) {
+            if (s.state != 'fulfilled') {
+              return;
+            }
 
-      deferred.resolve(stamps);
+            if (!s.value.length) {
+              return;
+            }
 
-    });
+            var val = s.value;
+
+            var isNightingale = _.findWhere(val, {'Software': 'Nightingale'});
+
+
+            procStamps.push({
+              url: urls[i].value,
+              stamps: val,
+              isNightingale: !!(isNightingale)
+            });
+            logger.log('verbose', 'Stamps %j', val, {});
+          });
+
+          if (procStamps) {
+            logger.log('info', 'The article %s contained the following stamps %j', articleJSON.id, procStamps, {});
+          } else {
+            logger.log('info', 'The article %s contained no stamps', articleJSON.id);
+          }
+
+          var hasNightingale = _.findWhere(procStamps, {isNightingale: true});
+
+          return {
+            article: articleJSON.id,
+            images: procStamps,
+            hasNightingale: !!(hasNightingale)
+          };
+      });
 
   });
 
-  return deferred.promise;
+
 
 }
 
@@ -164,7 +174,6 @@ function crawlImageSet(url) {
   return deferred.promise;
 }
 
-
 function downloadImage(promise)  {
   if (promise.state !== 'fulfilled') return;
   var url = promise.value;
@@ -189,7 +198,7 @@ function downloadImage(promise)  {
 
       if (response.headers['content-type'] !== 'image/png') {
         logger.log('debug', 'Image %s is not a PNG - Ignoring', uuid);
-        return;
+        return deferred.reject({error: 'not a png'});
       }
       logger.log('verbose', 'Image %s is a PNG, looking for stamps', uuid);
       var req = http.request({
@@ -220,44 +229,43 @@ function downloadImage(promise)  {
       req.end();
     });
 
-    return deferred.promise;
+  return deferred.promise;
 
 }
 
 
-module.exports = {
+var Poller = function() {
 
-  lastPolled: function() {
+  this.lastPolled = function() {
     return lastPolled;
   },
 
-  poll: function() {
+  this.poll = function() {
 
     if (!lastPolled) {
       // start polling three hours ago
-      lastPolled = new Date(new Date().getTime() - 1 * 60 * 60 * 1000);
+      lastPolled = new Date(new Date().getTime() - 24 * 60 * 60 * 1000);
     } else {
       lastPolled = new Date();
     }
 
-    getNotifications()
+    return getNotifications()
       .then(function(notifications) {
         logger.log('verbose', 'Fetching %s articles', notifications.length);
         var promises = notifications.map(processNotification);
-
-        var deferred = Q.defer();
-
-        Q.allSettled(promises)
-          .then(function(stamps) {
-            logger.log('info', 'All articles processed', stamps);
-            deferred.resolve(stamps);
-          });
-
-        return deferred.promise;
-
+        return Q.allSettled(promises);
       })
       .then(function(stamps) {
-        logger.log('debug', 'Stamps found:', stamps);
+        logger.log('verbose', 'Stamps found:');
+        return _.compact(stamps.map(function(s) {
+          if (!s.value) return null;
+          if (!s.value.images.length) return null;
+          logger.log('verbose', JSON.stringify(s.value, null, 2));
+          return s.value;
+        }));
       });
-  }
+  };
+
 };
+
+module.exports = Poller;

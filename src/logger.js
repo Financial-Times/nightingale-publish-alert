@@ -1,7 +1,7 @@
 var winston = require('winston');
 
 module.exports = new (winston.Logger)({
-  level: 'info',
+  level: process.env.LEVEL || 'info',
   transports: [
     new (winston.transports.Console)({colorize: true})
   ],
