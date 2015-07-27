@@ -1,4 +1,6 @@
+// this is only necessary for running locally
 require('dotenv').load();
+
 var Notifier = require('../src/notifier');
 var expect = require('chai').expect;
 
