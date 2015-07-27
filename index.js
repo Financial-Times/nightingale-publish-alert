@@ -21,9 +21,9 @@ setInterval(function() {
 
 poller.poll()
   .then(function(articles) {
-    var artsWithNightingale = _.filter(articles, {'hasNightingale': true});
+    var chartsWithNightingale = _.filter(articles, {'hasNightingale': true});
 
-    logger.log('info', JSON.stringify(artsWithNightingale, null, 2));
+    logger.log('info', JSON.stringify(chartsWithNightingale, null, 2));
   });
 
 

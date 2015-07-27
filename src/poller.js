@@ -74,7 +74,7 @@ function fetchArticle(notification) {
 function checkForPNGs(articleJSON) {
   // var articleJSON = promise.value;
   var imageSetUrls = [];
-
+  // logger.log('debug', JSON.stringify(articleJSON, null, 2));
   var $ = cheerio.load(articleJSON.bodyXML);
 
   $('ft-content[type*="/ImageSet"]')
@@ -127,7 +127,9 @@ function checkForPNGs(articleJSON) {
           var hasNightingale = _.findWhere(procStamps, {isNightingale: true});
 
           return {
-            article: articleJSON.id,
+            url: articleJSON.webUrl,
+            publishedDate: articleJSON.publishedDate,
+            title: articleJSON.title,
             images: procStamps,
             hasNightingale: !!(hasNightingale)
           };
