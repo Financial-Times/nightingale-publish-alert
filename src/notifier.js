@@ -114,6 +114,7 @@ var Notifier = function() {
     .useBasicAuth(ASANA_API_KEY);
 
   this.addTask = function(article) {
+    logger.log('info', 'Adding Asana notification for article %s', article.url);
     return client.tasks.create({
       workspace: ASANA_WORKSPACE_ID,
       projects: [ASANA_PROJECT_ID],

@@ -13,8 +13,9 @@ var stamperUrl = process.env.STAMPER_URL;
 var stamper = url.parse(stamperUrl);
 var API_KEY = process.env.FT_API_KEY;
 
-function getNotifications() {
 
+
+function getNotifications() {
   var deferred = Q.defer();
   logger.log('info', 'Loading notifications since %s', moment(lastPolled).format());
   request
@@ -36,6 +37,8 @@ function getNotifications() {
 
   return deferred.promise;
 }
+
+
 
 function processNotification(notification) {
   return fetchArticle(notification)
@@ -240,7 +243,7 @@ var Poller = function() {
 
   this.lastPolled = function() {
     return lastPolled;
-  },
+  };
 
   this.poll = function() {
 
@@ -259,12 +262,15 @@ var Poller = function() {
       })
       .then(function(stamps) {
         logger.log('verbose', 'Stamps found:');
-        return _.compact(stamps.map(function(s) {
+        var foundStamps = _.compact(stamps.map(function(s) {
           if (!s.value) return null;
           if (!s.value.images.length) return null;
           logger.log('verbose', JSON.stringify(s.value, null, 2));
           return s.value;
         }));
+
+        return foundStamps;
+
       });
   };
 
