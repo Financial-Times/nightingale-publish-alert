@@ -2,6 +2,7 @@ var request = require('superagent');
 var Q = require('q');
 var logger = require('./logger');
 var http = require('http');
+var querystring = require('querystring');
 var moment = require('moment');
 var url = require('url');
 var cheerio = require('cheerio');
@@ -14,16 +15,30 @@ var stamper = url.parse(stamperUrl);
 var API_KEY = process.env.FT_API_KEY;
 
 
-
 function getNotifications() {
+  var query = {
+    since : lastPolled.toISOString()
+  };
+
+  var qs = querystring.stringify(query);
+
+  var reqUrl = ftApiURLRoot + '/content/notifications?' + qs;
+
   var deferred = Q.defer();
+
+  getNotificationsPage(reqUrl, [], deferred);
+
+  return deferred.promise;
+
+}
+
+// memoised recursive function that navigates the links until
+// there are no more notifications
+function getNotificationsPage(url, notifications, deferred) {
+  logger.log('debug', url);
   logger.log('info', 'Loading notifications since %s', moment(lastPolled).format());
   request
-    .get(ftApiURLRoot + '/content/notifications')
-    .query({
-      since : lastPolled.toISOString(),
-      apiKey : API_KEY
-    })
+    .get(url + '&apiKey='+API_KEY)
     .end(function(err, response) {
       if (err) {
         logger.log('error', 'Error getting notifications', {
@@ -31,11 +46,22 @@ function getNotifications() {
         });
         return deferred.reject(err);
       }
-      logger.log('info', 'Got %s notifications', response.body.notifications.length);
-      deferred.resolve(response.body.notifications);
+
+      // we reached the end
+      if (!response.body.notifications.length) {
+        deferred.resolve(notifications);
+      } else {
+        logger.log('info', 'Got %s notifications', response.body.notifications.length);
+        // continue
+        getNotificationsPage(
+            response.body.links[0].href,
+            notifications.concat(response.body.notifications),
+            deferred
+          );
+      }
+
     });
 
-  return deferred.promise;
 }
 
 
@@ -122,9 +148,9 @@ function checkForPNGs(articleJSON) {
           });
 
           if (procStamps) {
-            logger.log('info', 'The article %s contained the following stamps %j', articleJSON.id, procStamps, {});
+            logger.log('verbose', 'The article %s contained the following stamps %j', articleJSON.id, procStamps, {});
           } else {
-            logger.log('info', 'The article %s contained no stamps', articleJSON.id);
+            logger.log('verbose', 'The article %s contained no stamps', articleJSON.id);
           }
 
           var hasNightingale = _.findWhere(procStamps, {isNightingale: true});
