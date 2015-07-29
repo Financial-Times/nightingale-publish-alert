@@ -70,7 +70,7 @@ function processNotification(notification) {
   return fetchArticle(notification)
     .then(checkForPNGs)
     .then(function(stamps) {
-      logger.log('verbose', 'Notification processed', notification.uuid);
+      logger.log('verbose', 'Notification processed', notification.id);
       return stamps;
     });
 }
@@ -106,9 +106,31 @@ function checkForPNGs(articleJSON) {
   // logger.log('debug', JSON.stringify(articleJSON, null, 2));
   var $ = cheerio.load(articleJSON.bodyXML);
 
+  var imgTagUrls = [];
+
   $('ft-content[type*="/ImageSet"]')
     .each(function(d) {
       imageSetUrls.push(this.attribs.url);
+    });
+
+  $('img')
+    .each(function(d) {
+      // discard jpegs
+      if (/\.jpe?g$/.test(this.attribs.src)) {
+        return;
+      }
+
+      // no gifs here either duh
+      if (/\.gif$/.test(this.attribs.src)) {
+        return;
+      }
+
+      // we disguise them as "promises" so that they
+      // look like what crawlImageSet returns (due to)
+      // using allsettled
+      imgTagUrls.push({
+        value: this.attribs.src
+      });
     });
 
   logger.log('debug', 'Checking article for PNG images');
@@ -119,6 +141,10 @@ function checkForPNGs(articleJSON) {
       if (!urls.length) {
         return;
       }
+
+      // join the imageSet urls with the plain img tag urls
+      urls = urls.concat(imgTagUrls);
+
       logger.log('verbose', 'All ImageSets crawled, found %s images', urls.length);
       var promises = urls.map(downloadImage);
 
