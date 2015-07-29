@@ -7,6 +7,7 @@ var moment = require('moment');
 var url = require('url');
 var cheerio = require('cheerio');
 var _ = require('underscore');
+var path = require('path');
 
 var lastPolled = null;
 var ftApiURLRoot = process.env.FT_API_URL;
@@ -21,7 +22,6 @@ function getNotifications() {
   };
 
   var qs = querystring.stringify(query);
-
   var reqUrl = ftApiURLRoot + '/content/notifications?' + qs;
 
   var deferred = Q.defer();
@@ -55,7 +55,7 @@ function getNotificationsPage(url, notifications, deferred) {
         // continue
         getNotificationsPage(
             response.body.links[0].href,
-            notifications.concat(response.body.notifications),
+            notifications.concat(filterOutDeletes(response.body.notifications)),
             deferred
           );
       }
@@ -64,7 +64,12 @@ function getNotificationsPage(url, notifications, deferred) {
 
 }
 
-
+function filterOutDeletes(notifications) {
+  return _.filter(notifications, function (notification) {
+    var type = path.basename(notification.type);
+    return type !== 'DELETE'
+  });
+}
 
 function processNotification(notification) {
   return fetchArticle(notification)
