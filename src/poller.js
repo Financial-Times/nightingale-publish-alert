@@ -2,10 +2,12 @@ var request = require('superagent');
 var Q = require('q');
 var logger = require('./logger');
 var http = require('http');
+var querystring = require('querystring');
 var moment = require('moment');
 var url = require('url');
 var cheerio = require('cheerio');
 var _ = require('underscore');
+var path = require('path');
 
 var lastPolled = null;
 var ftApiURLRoot = process.env.FT_API_URL;
@@ -14,16 +16,29 @@ var stamper = url.parse(stamperUrl);
 var API_KEY = process.env.FT_API_KEY;
 
 
-
 function getNotifications() {
+  var query = {
+    since : lastPolled.toISOString()
+  };
+
+  var qs = querystring.stringify(query);
+  var reqUrl = ftApiURLRoot + '/content/notifications?' + qs;
+
   var deferred = Q.defer();
+
+  getNotificationsPage(reqUrl, [], deferred);
+
+  return deferred.promise;
+
+}
+
+// memoised recursive function that navigates the links until
+// there are no more notifications
+function getNotificationsPage(url, notifications, deferred) {
+  logger.log('debug', url);
   logger.log('info', 'Loading notifications since %s', moment(lastPolled).format());
   request
-    .get(ftApiURLRoot + '/content/notifications')
-    .query({
-      since : lastPolled.toISOString(),
-      apiKey : API_KEY
-    })
+    .get(url + '&apiKey='+API_KEY)
     .end(function(err, response) {
       if (err) {
         logger.log('error', 'Error getting notifications', {
@@ -31,20 +46,36 @@ function getNotifications() {
         });
         return deferred.reject(err);
       }
-      logger.log('info', 'Got %s notifications', response.body.notifications.length);
-      deferred.resolve(response.body.notifications);
+
+      // we reached the end
+      if (!response.body.notifications.length) {
+        deferred.resolve(notifications);
+      } else {
+        logger.log('info', 'Got %s notifications', response.body.notifications.length);
+        // continue
+        getNotificationsPage(
+            response.body.links[0].href,
+            notifications.concat(filterOutDeletes(response.body.notifications)),
+            deferred
+          );
+      }
+
     });
 
-  return deferred.promise;
 }
 
-
+function filterOutDeletes(notifications) {
+  return _.filter(notifications, function (notification) {
+    var type = path.basename(notification.type);
+    return type !== 'DELETE';
+  });
+}
 
 function processNotification(notification) {
   return fetchArticle(notification)
     .then(checkForPNGs)
     .then(function(stamps) {
-      logger.log('verbose', 'Notification processed', notification.uuid);
+      logger.log('verbose', 'Notification processed', notification.id);
       return stamps;
     });
 }
@@ -80,9 +111,31 @@ function checkForPNGs(articleJSON) {
   // logger.log('debug', JSON.stringify(articleJSON, null, 2));
   var $ = cheerio.load(articleJSON.bodyXML);
 
+  var imgTagUrls = [];
+
   $('ft-content[type*="/ImageSet"]')
     .each(function(d) {
       imageSetUrls.push(this.attribs.url);
+    });
+
+  $('img')
+    .each(function(d) {
+      // discard jpegs
+      if (/\.jpe?g$/.test(this.attribs.src)) {
+        return;
+      }
+
+      // no gifs here either duh
+      if (/\.gif$/.test(this.attribs.src)) {
+        return;
+      }
+
+      // we disguise them as "promises" so that they
+      // look like what crawlImageSet returns (due to)
+      // using allsettled
+      imgTagUrls.push({
+        value: this.attribs.src
+      });
     });
 
   logger.log('debug', 'Checking article for PNG images');
@@ -93,6 +146,10 @@ function checkForPNGs(articleJSON) {
       if (!urls.length) {
         return;
       }
+
+      // join the imageSet urls with the plain img tag urls
+      urls = urls.concat(imgTagUrls);
+
       logger.log('verbose', 'All ImageSets crawled, found %s images', urls.length);
       var promises = urls.map(downloadImage);
 
@@ -122,9 +179,9 @@ function checkForPNGs(articleJSON) {
           });
 
           if (procStamps) {
-            logger.log('info', 'The article %s contained the following stamps %j', articleJSON.id, procStamps, {});
+            logger.log('verbose', 'The article %s contained the following stamps %j', articleJSON.id, procStamps, {});
           } else {
-            logger.log('info', 'The article %s contained no stamps', articleJSON.id);
+            logger.log('verbose', 'The article %s contained no stamps', articleJSON.id);
           }
 
           var hasNightingale = _.findWhere(procStamps, {isNightingale: true});
@@ -180,7 +237,8 @@ function crawlImageSet(url) {
 }
 
 function downloadImage(promise)  {
-  if (promise.state !== 'fulfilled') return;
+  if (promise.state !== 'fulfilled') return null;
+  if (!promise.value) return null;
   var url = promise.value;
   var path = require('path');
   var uuid = path.basename(url);
@@ -248,8 +306,9 @@ var Poller = function() {
   this.poll = function() {
 
     if (!lastPolled) {
+      var msBack = process.env.SEARCH_BACK_MS || 5000; // default to 5 seconds
       // start polling three hours ago
-      lastPolled = new Date(new Date().getTime() - 24 * 60 * 60 * 1000);
+      lastPolled = new Date(new Date().getTime() - msBack);
     } else {
       lastPolled = new Date();
     }
