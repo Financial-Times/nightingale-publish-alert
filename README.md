@@ -21,3 +21,10 @@ ASANA_PROJECT_ID=<the project id to post alerts to>
 ## Running
 
 Use `foreman start` to start up the service. This will load the .env file and start up the service.
+
+## Deployment
+
+See DEPLOYMENT.md
+
+
+

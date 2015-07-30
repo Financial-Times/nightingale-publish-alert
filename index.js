@@ -22,6 +22,7 @@ function pollForCharts() {
   .then(function(articles) {
     var chartsWithNightingale = _.filter(articles, {'hasNightingale': true});
     logger.log('info', 'Charts with nightingale: %s', chartsWithNightingale.length);
+    logger.log('info', JSON.stringify(chartsWithNightingale));
     chartsWithNightingale.map(notifier.addTask);
   })
   .fail(function(error) {
