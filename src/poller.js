@@ -67,7 +67,7 @@ function getNotificationsPage(url, notifications, deferred) {
 function filterOutDeletes(notifications) {
   return _.filter(notifications, function (notification) {
     var type = path.basename(notification.type);
-    return type !== 'DELETE'
+    return type !== 'DELETE';
   });
 }
 
@@ -237,7 +237,8 @@ function crawlImageSet(url) {
 }
 
 function downloadImage(promise)  {
-  if (promise.state !== 'fulfilled') return;
+  if (promise.state !== 'fulfilled') return null;
+  if (!promise.value) return null;
   var url = promise.value;
   var path = require('path');
   var uuid = path.basename(url);
@@ -305,8 +306,9 @@ var Poller = function() {
   this.poll = function() {
 
     if (!lastPolled) {
+      var msBack = process.env.SEARCH_BACK_MS || 5000; // default to 5 seconds
       // start polling three hours ago
-      lastPolled = new Date(new Date().getTime() - 24 * 60 * 60 * 1000);
+      lastPolled = new Date(new Date().getTime() - msBack);
     } else {
       lastPolled = new Date();
     }
