@@ -32,18 +32,9 @@ describe('Notifier', function () {
     notifier
       .addTask(article)
       .then(function(task) {
-            expect(task.name).to.equal('Charts on article "' + article.title + '"');
+            expect(task.name).to.equal('Nightingale chart published in article "' + article.title + '"');
             expect(task.notes).to.equal(article.url);
-
-            var response = notifier.postToSlack(task);
-
-            response.then(function(response) {
-                expect(response.status).to.equal('ok');
-                done();
-            })
-                .fail(function(error) {
-                    console.error("Could not post to slack", error);
-                });
+            done();
       });
   });
 
