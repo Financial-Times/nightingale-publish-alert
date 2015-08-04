@@ -5,7 +5,7 @@ var Notifier = require('../src/notifier');
 var expect = require('chai').expect;
 
 describe('Notifier', function () {
-  it('should add tasks properly', function (done) {
+  it('should add tasks and notify slack group', function (done) {
     this.timeout(100000);
     var notifier = new Notifier();
     var article = {
@@ -32,9 +32,10 @@ describe('Notifier', function () {
     notifier
       .addTask(article)
       .then(function(task) {
-        expect(task.name).to.equal('Charts on article "' + article.title + '"');
-        expect(task.notes).to.equal(article.url);
-        done();
+            expect(task.name).to.equal('Nightingale chart published in article "' + article.title + '"');
+            expect(task.notes).to.equal(article.url);
+            done();
       });
   });
+
 });

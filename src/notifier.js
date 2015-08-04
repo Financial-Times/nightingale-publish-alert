@@ -5,6 +5,7 @@ var Q = require('q');
 var uuid = require('uuid');
 var https = require('https');
 var url = require('url');
+var Slack = require('slack-node');
 
 var logger = require('./logger');
 
@@ -12,6 +13,8 @@ var ASANA_API_KEY = process.env.ASANA_API_KEY;
 var ASANA_API_URL = process.env.ASANA_API_URL;
 var ASANA_PROJECT_ID = process.env.ASANA_PROJECT_ID;
 var ASANA_WORKSPACE_ID = process.env.ASANA_WORKSPACE_ID;
+
+var SLACK_WEB_HOOK = process.env.SLACK_WEB_HOOK;
 
 var tmp = '.tmp';
 
@@ -106,6 +109,23 @@ function uploadAttachment(image, task) {
   return deferred.promise;
 }
 
+function postToSlack(slack, task) {
+  var deferred = Q.defer();
+  var message = "Task: " + task.name;
+  var taskLink = "https://app.asana.com/0/" + ASANA_PROJECT_ID + "/" + task.id;
+  message += "\nTo review the chart(s) click the following link: <" + taskLink + "| " + task.name + ">";
+
+  slack.webhook({
+    text: message
+  }, function(err, response) {
+    if (err) {
+      return deferred.reject(err);
+    }
+    deferred.resolve(response);
+  });
+
+  return deferred.promise;
+}
 
 
 var Notifier = function() {
@@ -113,13 +133,16 @@ var Notifier = function() {
   var client = asana.Client.create()
     .useBasicAuth(ASANA_API_KEY);
 
+  var slack = new Slack();
+  slack.setWebhook(SLACK_WEB_HOOK);
+
   this.addTask = function(article) {
     logger.log('info', 'Adding Asana notification for article %s', article.url);
     return client.tasks.create({
       workspace: ASANA_WORKSPACE_ID,
       projects: [ASANA_PROJECT_ID],
-      name : 'Charts on article "' + article.title + '"',
-      notes : article.url,
+      name : 'Nightingale chart published in article "' + article.title + '"',
+      notes : article.url
     }).then(function(task) {
       var proms = article.images.map(function(image) {
         return getFile(image.url)
@@ -132,6 +155,10 @@ var Notifier = function() {
             return resp;
           }, function(err) {
             logger.log('error', err);
+          })
+          .then(function() {
+            logger.log('verbose', 'posting notification to slack for task %s', task.id, {});
+            return postToSlack(slack, task);
           });
       });
 

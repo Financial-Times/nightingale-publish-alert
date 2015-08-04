@@ -17,6 +17,7 @@ ASANA_API_URL=<the asana api url>
 ASANA_WORKSPACE_ID=<the workspace id to post alerts to>
 ASANA_PROJECT_ID=<the project id to post alerts to>
 SEARCH_BACK_MS=5000 # How many milliseconds to search notifications back in time for (i.e. when you start the app again)
+SLACK_WEB_HOOK=<Slack web hook full URL>
 ```
 
 ## Running
