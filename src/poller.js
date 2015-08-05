@@ -134,6 +134,7 @@ function checkForPNGs(articleJSON) {
       // look like what crawlImageSet returns (due to)
       // using allsettled
       imgTagUrls.push({
+        state: 'fulfilled',
         value: this.attribs.src
       });
     });
@@ -143,12 +144,11 @@ function checkForPNGs(articleJSON) {
 
   return Q.allSettled(promises)
     .then(function(urls) {
+      // join the imageSet urls with the plain img tag urls
+      urls = urls.concat(imgTagUrls);
       if (!urls.length) {
         return;
       }
-
-      // join the imageSet urls with the plain img tag urls
-      urls = urls.concat(imgTagUrls);
 
       logger.log('verbose', 'All ImageSets crawled, found %s images', urls.length);
       var promises = urls.map(downloadImage);
@@ -259,7 +259,7 @@ function downloadImage(promise)  {
         deferred.reject(err);
       }
 
-      if (response.headers['content-type'] !== 'image/png') {
+      if (response.headers['content-type'].indexOf('image/png') === -1) {
         logger.log('debug', 'Image %s is not a PNG - Ignoring', uuid);
         return deferred.reject({error: 'not a png'});
       }
