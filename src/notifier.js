@@ -111,7 +111,7 @@ function uploadAttachment(image, task) {
 
 function postToSlack(slack, task) {
   var deferred = Q.defer();
-  var message = "Task: " + task.name;
+  var message = "<!channel>\nTask: " + task.name;
   var taskLink = "https://app.asana.com/0/" + ASANA_PROJECT_ID + "/" + task.id;
   message += "\nTo review the chart(s) click the following link: <" + taskLink + "| " + task.name + ">";
 
