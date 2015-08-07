@@ -184,14 +184,15 @@ function checkForPNGs(articleJSON) {
             logger.log('verbose', 'The article %s contained no stamps', articleJSON.id);
           }
 
-          var hasNightingale = _.findWhere(procStamps, {isNightingale: true});
+          var nightingaleStamp = _.findWhere(procStamps, {isNightingale: true});
 
           return {
             url: articleJSON.webUrl,
             publishedDate: articleJSON.publishedDate,
             title: articleJSON.title,
             images: procStamps,
-            hasNightingale: !!(hasNightingale)
+            hasNightingale: !!(nightingaleStamp),
+            author: nightingaleStamp['stamps'][0]['Author']
           };
       });
 
@@ -242,7 +243,6 @@ function downloadImage(promise)  {
   var url = promise.value;
   var path = require('path');
   var uuid = path.basename(url);
-  var filePath = path.join('tmp', uuid + '.png');
 
   logger.log('debug', 'Downloading image %s from S3', uuid);
 
@@ -259,7 +259,7 @@ function downloadImage(promise)  {
         deferred.reject(err);
       }
 
-      if (response.headers['content-type'].indexOf('image/png') === -1) {
+      if (!response || response.headers['content-type'].indexOf('image/png') === -1) {
         logger.log('debug', 'Image %s is not a PNG - Ignoring', uuid);
         return deferred.reject({error: 'not a png'});
       }
@@ -299,14 +299,10 @@ function downloadImage(promise)  {
 
 var Poller = function() {
 
-  this.lastPolled = function() {
-    return lastPolled;
-  };
-
   this.poll = function() {
 
     if (!lastPolled) {
-      var msBack = process.env.SEARCH_BACK_MS || 5000; // default to 5 seconds
+      var msBack = process.env.SEARCH_BACK_MS || 15000; // default to 15 seconds
       // start polling three hours ago
       lastPolled = new Date(new Date().getTime() - msBack);
     } else {

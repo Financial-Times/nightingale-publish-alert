@@ -26,14 +26,15 @@ describe('Notifier', function () {
           "isNightingale": true
         }
       ],
-      "hasNightingale": true
+      "hasNightingale": true,
+      "author": "stephen.smith@ft.com"
     };
 
     notifier
       .addTask(article)
       .then(function(task) {
             expect(task.name).to.equal('Nightingale chart published in article "' + article.title + '"');
-            expect(task.notes).to.equal(article.url);
+            expect(task.notes).to.equal(article.url + '\nAuthor: stephen.smith@ft.com');
             done();
       });
   });
