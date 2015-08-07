@@ -142,7 +142,7 @@ var Notifier = function() {
       workspace: ASANA_WORKSPACE_ID,
       projects: [ASANA_PROJECT_ID],
       name : 'Nightingale chart published in article "' + article.title + '"',
-      notes : article.url
+      notes : article.url + "\nAuthor: " + article.author
     }).then(function(task) {
       var proms = article.images.map(function(image) {
         return getFile(image.url)
