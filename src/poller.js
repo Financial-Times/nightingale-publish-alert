@@ -191,8 +191,7 @@ function checkForPNGs(articleJSON) {
             publishedDate: articleJSON.publishedDate,
             title: articleJSON.title,
             images: procStamps,
-            hasNightingale: !!(nightingaleStamp),
-            author: nightingaleStamp['stamps'][0]['Author']
+            hasNightingale: !!(nightingaleStamp)
           };
       });
 

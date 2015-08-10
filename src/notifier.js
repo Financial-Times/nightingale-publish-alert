@@ -33,11 +33,23 @@ function getFile(url) {
   return deferred.promise;
 }
 
-function uploadAttachment(image, task) {
+function uploadAttachment(imageMetaData, image, task) {
   // var boundary = '----ArtisanalBoundary' + uuid.v4();
   var boundary = '----WebKitFormBoundary7MA4YWxkTrZu0gW';
   var nl = "\r\n";
-  var filename = path.basename(image.req.path) + '.png';
+  var author = 'unknown';
+  try {
+    author = imageMetaData.stamps[0].Author.split('@')[0];
+  } catch(exception) {
+    logger.log('error', 'Could not extract author for image ' + imageMetaData.url);
+  }
+  var suffix = '.png';
+  if (image.req.path.indexOf('.png') > -1) {
+    suffix = '';
+  }
+  var filename = author + ' - ' + path.basename(image.req.path) + suffix;
+
+  logger.log('verbose', 'uploading file %s', filename, {});
 
   // create a post body with boundaries etc
   var postHead = new Buffer(
@@ -90,6 +102,9 @@ function uploadAttachment(image, task) {
     });
 
     response.on('end', function() {
+      logger.log('verbose', 'Done uploading file %s', filename, {});
+      logger.log('verbose', 'Response %s', response.statusCode, {});
+      logger.log('verbose', 'Response body %s', responseBody, {});
       deferred.resolve(responseBody);
     });
 
@@ -142,27 +157,27 @@ var Notifier = function() {
       workspace: ASANA_WORKSPACE_ID,
       projects: [ASANA_PROJECT_ID],
       name : 'Nightingale chart published in article "' + article.title + '"',
-      notes : article.url + "\nAuthor: " + article.author
+      notes : article.url
     }).then(function(task) {
-      var proms = article.images.map(function(image) {
-        return getFile(image.url)
-          .then(function(image) {
+      var proms = article.images.map(function(imageMetaData) {
+        return getFile(imageMetaData.url)                                             //image object from JSON
+          .then(function(image) { //different image, this is actually an image
             logger.log('verbose', 'uploading attachment to task %s', task.id, {});
-            return uploadAttachment(image, task);
+            return uploadAttachment(imageMetaData, image, task);
           })
           .then(function(resp) {
             logger.log('debug', resp);
             return resp;
           }, function(err) {
             logger.log('error', err);
-          })
-          .then(function() {
-            logger.log('verbose', 'posting notification to slack for task %s', task.id, {});
-            return postToSlack(slack, task);
           });
       });
 
       return Q.all(proms)
+        .then(function() {
+          logger.log('verbose', 'posting notification to slack for task %s', task.id, {});
+          return postToSlack(slack, task);
+        })
         .then(function() {
           return task;
         });
