@@ -303,7 +303,7 @@ var Poller = function() {
     if (!lastPolled) {
       var msBack = process.env.SEARCH_BACK_MS || 15000; // default to 15 seconds
       // start polling three hours ago
-      lastPolled = moment.utc().tz("Europe/London").subtract(msBack);
+      lastPolled = moment.utc().tz("Europe/London").subtract(msBack, 'ms');
     } else {
       lastPolled = moment.utc().tz("Europe/London");
     }
