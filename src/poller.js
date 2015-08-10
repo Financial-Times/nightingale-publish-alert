@@ -3,7 +3,7 @@ var Q = require('q');
 var logger = require('./logger');
 var http = require('http');
 var querystring = require('querystring');
-var moment = require('moment');
+var moment = require('moment-timezone');
 var url = require('url');
 var cheerio = require('cheerio');
 var _ = require('underscore');
@@ -305,7 +305,7 @@ var Poller = function() {
       // start polling three hours ago
       lastPolled = new Date(new Date().getTime() - msBack);
     } else {
-      lastPolled = new Date();
+      lastPolled = moment.tz("Europe/London").toDate();
     }
 
     return getNotifications()
