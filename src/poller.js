@@ -303,9 +303,9 @@ var Poller = function() {
     if (!lastPolled) {
       var msBack = process.env.SEARCH_BACK_MS || 15000; // default to 15 seconds
       // start polling three hours ago
-      lastPolled = new Date(new Date().getTime() - msBack);
+      lastPolled = moment.utc().tz("Europe/London").subtract(msBack);
     } else {
-      lastPolled = moment.tz("Europe/London").toDate();
+      lastPolled = moment.utc().tz("Europe/London");
     }
 
     return getNotifications()
