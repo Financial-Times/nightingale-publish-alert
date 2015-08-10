@@ -15,7 +15,8 @@ var Notifier = require('./src/notifier');
 var poller = new Poller();
 var notifier = new Notifier();
 
-setInterval(pollForCharts, 10 * 60 * 1000);
+var interval = process.env.SEARCH_BACK_MS || 15000;
+setInterval(pollForCharts, interval);
 
 function pollForCharts() {
   poller.poll()
