@@ -1,6 +1,6 @@
 // this is only necessary for running locally
 require('dotenv').load();
-
+require('./mockApis');
 var Notifier = require('../src/notifier');
 var expect = require('chai').expect;
 

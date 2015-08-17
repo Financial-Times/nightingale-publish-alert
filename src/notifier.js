@@ -159,6 +159,7 @@ var Notifier = function() {
       name : 'Nightingale chart published in article "' + article.title + '"',
       notes : article.url
     }).then(function(task) {
+      debugger;
       var proms = article.images.map(function(imageMetaData) {
         return getFile(imageMetaData.url)                                             //image object from JSON
           .then(function(image) { //different image, this is actually an image
