@@ -29,7 +29,6 @@ function getNotifications() {
   getNotificationsPage(reqUrl, [], deferred);
 
   return deferred.promise;
-
 }
 
 // memoised recursive function that navigates the links until
