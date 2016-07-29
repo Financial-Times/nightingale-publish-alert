@@ -58,9 +58,7 @@ function getNotificationsPage(url, notifications, deferred) {
             deferred
           );
       }
-
     });
-
 }
 
 function filterOutDeletes(notifications) {
@@ -101,7 +99,6 @@ function fetchArticle(notification) {
     });
 
   return deferred.promise;
-
 }
 
 function checkForPNGs(articleJSON) {
@@ -193,11 +190,7 @@ function checkForPNGs(articleJSON) {
             hasNightingale: !!(nightingaleStamp)
           };
       });
-
   });
-
-
-
 }
 
 function crawlImageSet(url) {
@@ -291,7 +284,6 @@ function downloadImage(promise)  {
     });
 
   return deferred.promise;
-
 }
 
 

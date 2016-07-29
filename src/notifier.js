@@ -16,12 +16,8 @@ let Notifier = function(_slack, _asana){
     slack = _slack;
   }
 
-  if (_asana){
-    asana = _asana;
-  } else {
-    asana = new AsanaNotifier(asanaConfig);
-  }
-
+  var asana = _asana ? _asana : new AsanaNotifier(asanaConfig);
+  
   var getLink = function(task){
     return 'https://app.asana.com/0/' + asanaConfig.ASANA_PROJECT_ID + '/' + task.id;
   }

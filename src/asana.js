@@ -9,17 +9,8 @@ let path = require('path');
 let Promises = require('bluebird');
 
 function AsanaNotifier(config, _asanaClient, _request){
-  var request = superagent;
-  if (_request){
-    request = _request;
-  }
-
-  var asanaClient;
-  if(_asanaClient){
-    asanaClient = _asanaClient;
-  } else {
-    asanaClient = asana.Client.create().useBasicAuth(config.ASANA_API_KEY);
-  }
+  var request = _request ? _request : superagent;
+  var asanaClient = _asanaClient ? _asanaClient : asana.Client.create().useBasicAuth(config.ASANA_API_KEY);
 
   var getFilename = function(image, imageMetaData){
     var author = 'unknown';
