@@ -1,3 +1,5 @@
+"use strict";
+
 require('dotenv').load();
 
 let expect = require('chai').expect;

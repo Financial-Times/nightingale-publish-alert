@@ -1,3 +1,5 @@
+"use strict";
+
 let logger = require('./logger');
 
 let plugin = require('superagent-promise-plugin');

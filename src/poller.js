@@ -1,3 +1,5 @@
+"use strict";
+
 var request = require('superagent');
 var Q = require('q');
 var logger = require('./logger');
@@ -208,7 +210,7 @@ function crawlImageSet(url) {
         });
         return deferred.reject(err);
       }
-      imageUrl = response.body.members[0].id;
+      var imageUrl = response.body.members[0].id;
       request
         .get(imageUrl)
         .query({

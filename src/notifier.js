@@ -1,3 +1,5 @@
+"use strict";
+
 let logger = require('./logger');
 let AsanaNotifier = require('./asana');
 var slack = require('./slack');
@@ -17,16 +19,16 @@ let Notifier = function(_slack, _asana){
   }
 
   var asana = _asana ? _asana : new AsanaNotifier(asanaConfig);
-  
+
   var getLink = function(task){
     return 'https://app.asana.com/0/' + asanaConfig.ASANA_PROJECT_ID + '/' + task.id;
-  }
+  };
 
   this.processArticle = function(article){
     return asana.createTask(article).then(task => {
       return slack.postTask(SLACK_WEB_HOOK, task, getLink(task));
     });
   }
-}
+};
 
 module.exports = Notifier;

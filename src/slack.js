@@ -1,3 +1,5 @@
+"use strict";
+
 let bluebird = require('bluebird');
 let Slack = bluebird.promisifyAll(require('slack-node'));
 bluebird.promisifyAll(Slack.prototype);

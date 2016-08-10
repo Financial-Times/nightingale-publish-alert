@@ -1,3 +1,5 @@
+"use strict";
+
 // this is only necessary for running locally
 require('dotenv').load();
 

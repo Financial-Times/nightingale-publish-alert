@@ -1,3 +1,5 @@
+"use strict";
+
 module.exports = [
   {
     pattern: 'http://upp.ft.com([/a-zA-Z]+)\?(.*)',
