@@ -3,7 +3,7 @@ test:
     - touch .env
 machine:
   node:
-    version: 0.10.33
+    version: 4.14.0
 
 deployment:
   staging:
