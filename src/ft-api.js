@@ -17,9 +17,9 @@ function NotificationsApi(_config, _requests){
   let requests = _requests ? _requests : superagent;
 
   let nextPage = function(url, notifications) {
-    logger.log('debug', url);
-    return requests.get(url + '&apiKey=' + config.API_KEY).then(response => {
-      if (!response.body.notifications) {
+    logger.log('info', url + '&apiKey=' + config.FT_API_KEY);
+    return requests.get(url + '&apiKey=' + config.FT_API_KEY).then(response => {
+      if (!response.body.notifications || response.body.notifications.length === 0) {
         return notifications;
       } else {
         logger.log('info', 'Got %s notifications', response.body.notifications.length);
@@ -38,7 +38,7 @@ function NotificationsApi(_config, _requests){
   };
 
   let processNotification = function(notification) {
-    return fetchArticle(notification)
+    return fetchArticleV2(notification)
       .then(checkForPNGs)
       .then(function(stamps) {
         logger.log('verbose', 'Notification processed', notification.id);
@@ -50,7 +50,7 @@ function NotificationsApi(_config, _requests){
     logger.log('verbose', 'Loading article %s', notification.apiUrl);
     return requests.get(notification.apiUrl)
       .query({
-          apiKey : config.API_KEY
+          apiKey : config.FT_API_KEY
       }).catch(err => {
         logger.log('error', 'Error getting article %s', notification.apiUrl, {
           error: err.message,

@@ -21,14 +21,26 @@ setInterval(pollForCharts, interval);
 function pollForCharts() {
   poller.poll()
   .then(function(articles) {
-    var chartsWithNightingale = _.filter(articles, {'hasNightingale': true});
-    logger.log('info', 'Charts with nightingale: %s', chartsWithNightingale.length);
-    logger.log('info', JSON.stringify(chartsWithNightingale));
-    chartsWithNightingale.map(notifier.processArticle);
+    filterArticles(articles, {'hasNightingale': true})
+      .map(notifier.processArticle);
+    filterArticles(articles, function(a) {
+      return a['metadata']['validMetadata'] == false;
+    }).map(notifier.processMetadata)
   })
-  .fail(function(error) {
+  .catch(function(error) {
     logger.log('error', 'Error:', error);
   });
+
+  function filterArticles(articles, predicate) {
+    var filteredArticles = _.filter(articles, predicate);
+    var predicateMessage = 'nightingale charts';
+    if (typeof predicate == "function") {
+      predicateMessage = 'invalid metadata';
+    }
+    logger.log('info', 'Articles with %s : %s', predicateMessage, filteredArticles.length);
+    logger.log('info', JSON.stringify(filteredArticles));
+    return filteredArticles;
+  }
 }
 
 pollForCharts();

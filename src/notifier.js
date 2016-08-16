@@ -1,6 +1,5 @@
 "use strict";
 
-let logger = require('./logger');
 let AsanaNotifier = require('./asana');
 var slack = require('./slack');
 
@@ -12,6 +11,7 @@ let asanaConfig = {
 };
 
 let SLACK_WEB_HOOK = process.env.SLACK_WEB_HOOK;
+let SLACK_METADATA_WEB_HOOK = process.env.SLACK_METADATA_WEB_HOOK;
 
 let Notifier = function(_slack, _asana){
   if (_slack){
@@ -28,6 +28,10 @@ let Notifier = function(_slack, _asana){
     return asana.createTask(article).then(task => {
       return slack.postTask(SLACK_WEB_HOOK, task, getLink(task));
     });
+  };
+
+  this.processMetadata = function (article) {
+    return slack.postMetadataTask(SLACK_METADATA_WEB_HOOK, article);
   }
 };
 
