@@ -121,6 +121,7 @@ function checkForMetadataV1(articleJSON) {
   let primaryTheme = !!articleJSON.item.metadata.primaryTheme;
   let authors = !!articleJSON.item.metadata.authors;
   let validMetadata = primarySection && primaryTheme && authors;
+  let isBlog = articleJSON.item.aspectSet == "blogPost"
   return {
     id: articleJSON.item.id,
     title: articleJSON.item.title.title,
@@ -129,6 +130,7 @@ function checkForMetadataV1(articleJSON) {
     hasPrimarySection: primarySection,
     hasAuthors: authors,
     hasPrimaryTheme: primaryTheme,
+    isBlog: isBlog
   };
 }
 
