@@ -1,3 +1,5 @@
+"use strict";
+
 var request = require('superagent');
 var Q = require('q');
 var logger = require('./logger');
@@ -8,6 +10,7 @@ var url = require('url');
 var cheerio = require('cheerio');
 var _ = require('underscore');
 var path = require('path');
+let NotificationsApi = require('./ft-api');
 
 var lastPolled = null;
 var ftApiURLRoot = process.env.FT_API_URL;
@@ -15,22 +18,6 @@ var stamperUrl = process.env.STAMPER_URL;
 var stamper = url.parse(stamperUrl);
 var API_KEY = process.env.FT_API_KEY;
 
-
-function getNotifications() {
-  var query = {
-    since : lastPolled.toISOString()
-  };
-
-  var qs = querystring.stringify(query);
-  var reqUrl = ftApiURLRoot + '/content/notifications?' + qs;
-
-  var deferred = Q.defer();
-
-  getNotificationsPage(reqUrl, [], deferred);
-
-  return deferred.promise;
-
-}
 
 // memoised recursive function that navigates the links until
 // there are no more notifications
@@ -59,9 +46,7 @@ function getNotificationsPage(url, notifications, deferred) {
             deferred
           );
       }
-
     });
-
 }
 
 function filterOutDeletes(notifications) {
@@ -72,37 +57,81 @@ function filterOutDeletes(notifications) {
 }
 
 function processNotification(notification) {
-  return fetchArticle(notification)
-    .then(checkForPNGs)
-    .then(function(stamps) {
-      logger.log('verbose', 'Notification processed', notification.id);
-      return stamps;
+
+  return fetchArticleV1(notification).then(function (articleV1) {
+    return [articleV1, fetchArticleV2(notification)];
+  }).spread(function(articleV1, articleV2) {
+      logger.log('verbose', 'Article content and metadata fetched', articleV1.requestUrl, articleV2.id);
+      return Q.all([checkForMetadataV1(articleV1), checkForPNGs(articleV2)])
+        .spread(function(articleMetadataV1, articleImages) {
+          logger.log('verbose', 'Notification processed', notification.id, articleMetadataV1.id);
+          articleImages = articleImages || {};
+          articleImages.metadata = articleMetadataV1;
+          return articleImages;
+        });
+    }).catch(function (error) {
+      logger.log('error', 'Error when checking metadata and images for notification ', notification.id, error);
+      throw error;
     });
 }
 
 
-function fetchArticle(notification) {
+function fetchArticleV2(notification) {
+  let notificationUrl = notification.apiUrl;
+  if (!notificationUrl.includes("enrichedcontent")) {
+    notificationUrl = notificationUrl.replace("content", "enrichedcontent");
+  }
+  return fetchArticle(notificationUrl);
+}
+
+function fetchArticleV1(notification) {
+  let notificationUrl = notification.apiUrl;
+  if (notificationUrl.includes("/enriched")) {
+    notificationUrl = notificationUrl.replace("/enriched", "/");
+  }
+  notificationUrl = notificationUrl.replace("content", "content/items/v1");
+  return fetchArticle(notificationUrl);
+}
+
+function fetchArticle(articleUrl) {
   var deferred = Q.defer();
-  logger.log('verbose', 'Loading article %s', notification.apiUrl);
+  logger.log('verbose', 'Loading article V1 %s', articleUrl);
   request
-    .get(notification.apiUrl)
+    .get(articleUrl)
     .query({
-        apiKey : API_KEY
+      apiKey : API_KEY
     })
     .end(function (err, response) {
       if (err) {
-        logger.log('error', 'Error getting article %s', notification.apiUrl, {
+        logger.log('error', 'Error getting article %s', articleUrl, {
           error: err.message,
-          notification: notification
+          articleUrl: articleUrl
         });
         return deferred.reject(err);
       }
-      logger.log('verbose', 'Loaded article %s', notification.apiUrl);
+      logger.log('verbose', 'Loaded article %s', articleUrl);
       deferred.resolve(response.body);
     });
 
   return deferred.promise;
+}
 
+function checkForMetadataV1(articleJSON) {
+  let primarySection = !!articleJSON.item.metadata.primarySection;
+  let primaryTheme = !!articleJSON.item.metadata.primaryTheme;
+  let authors = !!articleJSON.item.metadata.authors;
+  let validMetadata = primarySection && primaryTheme && authors;
+  let isBlog = articleJSON.item.aspectSet == "blogPost"
+  return {
+    id: articleJSON.item.id,
+    title: articleJSON.item.title.title,
+    webUrl: articleJSON.item.location.uri,
+    validMetadata: validMetadata,
+    hasPrimarySection: primarySection,
+    hasAuthors: authors,
+    hasPrimaryTheme: primaryTheme,
+    isBlog: isBlog
+  };
 }
 
 function checkForPNGs(articleJSON) {
@@ -158,11 +187,11 @@ function checkForPNGs(articleJSON) {
           var procStamps = [];
           stamps.forEach(function(s, i) {
             if (s.state != 'fulfilled') {
-              return;
+              return {};
             }
 
-            if (!s.value.length) {
-              return;
+            if (!(s.value && s.value.length)) {
+              return {};
             }
 
             var val = s.value;
@@ -194,11 +223,7 @@ function checkForPNGs(articleJSON) {
             hasNightingale: !!(nightingaleStamp)
           };
       });
-
   });
-
-
-
 }
 
 function crawlImageSet(url) {
@@ -216,7 +241,7 @@ function crawlImageSet(url) {
         });
         return deferred.reject(err);
       }
-      imageUrl = response.body.members[0].id;
+      var imageUrl = response.body.members[0].id;
       request
         .get(imageUrl)
         .query({
@@ -292,11 +317,12 @@ function downloadImage(promise)  {
     });
 
   return deferred.promise;
-
 }
 
 
 var Poller = function() {
+
+  let ftApi = new NotificationsApi();
 
   this.poll = function() {
 
@@ -305,20 +331,19 @@ var Poller = function() {
       lastPolled = moment.utc().tz("Europe/London").subtract(msBack, 'ms');
     } else {
       lastPolled = lastPolled.add(msBack, 'ms');
+      logger.log('info', 'lastPolled set to %s', moment(lastPolled).format());
     }
 
-    return getNotifications()
+    return ftApi.getNotifications(lastPolled)
       .then(function(notifications) {
         logger.log('verbose', 'Fetching %s articles', notifications.length);
         var promises = notifications.map(processNotification);
         return Q.allSettled(promises);
       })
-      .then(function(stamps) {
-        logger.log('verbose', 'Stamps found:');
-        var foundStamps = _.compact(stamps.map(function(s) {
+      .then(function(article) {
+        logger.log('verbose', 'Article metadata and stamps found:');
+        var foundStamps = _.compact(article.map(function(s) {
           if (!s.value) return null;
-          if (!s.value.images.length) return null;
-          logger.log('verbose', JSON.stringify(s.value, null, 2));
           return s.value;
         }));
 
