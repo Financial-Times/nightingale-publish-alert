@@ -73,7 +73,8 @@ describe('Notifier', function () {
         "validMetadata": false,
         "hasPrimarySection": true,
         "hasAuthors": true,
-        "hasPrimaryTheme": false
+        "hasPrimaryTheme": false,
+        "isBlog": false
       }
     };
 
