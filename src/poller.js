@@ -138,7 +138,7 @@ function checkForMetadataV1(articleJSON) {
   }
 
   function isNotEmptyObject(property) {
-    return property && (property['term'] != null)
+    return !!(property && property['term'])
   }
 }
 
