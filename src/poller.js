@@ -117,11 +117,11 @@ function fetchArticle(articleUrl) {
 }
 
 function checkForMetadataV1(articleJSON) {
-  let primarySection = !!articleJSON.item.metadata.primarySection;
-  let primaryTheme = !!articleJSON.item.metadata.primaryTheme;
-  let authors = !!articleJSON.item.metadata.authors;
+  let primarySection = isNotEmpty(articleJSON.item.metadata.primarySection);
+  let primaryTheme = isNotEmpty(articleJSON.item.metadata.primaryTheme);
+  let authors = isNotEmpty(articleJSON.item.metadata.authors);
   let validMetadata = primarySection && primaryTheme && authors;
-  let isBlog = articleJSON.item.aspectSet == "blogPost"
+  let isBlog = articleJSON.item.aspectSet == "blogPost";
   return {
     id: articleJSON.item.id,
     title: articleJSON.item.title.title,
@@ -132,6 +132,10 @@ function checkForMetadataV1(articleJSON) {
     hasPrimaryTheme: primaryTheme,
     isBlog: isBlog
   };
+
+  function isNotEmpty(property) {
+    return property && (property.length > 0)
+  }
 }
 
 function checkForPNGs(articleJSON) {
