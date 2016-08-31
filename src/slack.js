@@ -29,7 +29,7 @@ function postMetadataTask(webhook, article) {
   slack.setWebhook(webhook);
   var url = article.url || article.metadata.webUrl;
   var title = article.title || article.metadata.title;
-  var message = '<!channel>\nArticle: ' + article.metadata.id + '\n <' + url + ' | ' + title + '>\nis missing:';
+  var message = 'Article: ' + article.metadata.id + '\n <' + url + ' | ' + title + '>\nis missing:';
   if (!article.metadata.hasPrimarySection) {
     message += '\nprimary section';
   }
