@@ -11,6 +11,7 @@ var cheerio = require('cheerio');
 var _ = require('underscore');
 var path = require('path');
 let NotificationsApi = require('./ft-api');
+let checkForMetadataV1 = require('./metadata-validator');
 
 var lastPolled = null;
 var ftApiURLRoot = process.env.FT_API_URL;
@@ -114,32 +115,6 @@ function fetchArticle(articleUrl) {
     });
 
   return deferred.promise;
-}
-
-function checkForMetadataV1(articleJSON) {
-  let primarySection = isNotEmptyObject(articleJSON.item.metadata.primarySection);
-  let primaryTheme = isNotEmptyObject(articleJSON.item.metadata.primaryTheme);
-  let authors = isNotEmptyArray(articleJSON.item.metadata.authors);
-  let validMetadata = primarySection && primaryTheme && authors;
-  let isBlog = articleJSON.item.aspectSet == "blogPost";
-  return {
-    id: articleJSON.item.id,
-    title: articleJSON.item.title.title,
-    webUrl: articleJSON.item.location.uri,
-    validMetadata: validMetadata,
-    hasPrimarySection: primarySection,
-    hasAuthors: authors,
-    hasPrimaryTheme: primaryTheme,
-    isBlog: isBlog
-  };
-
-  function isNotEmptyArray(property) {
-    return property && (property.length > 0)
-  }
-
-  function isNotEmptyObject(property) {
-    return !!(property && property['term'])
-  }
 }
 
 function checkForPNGs(articleJSON) {
