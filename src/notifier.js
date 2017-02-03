@@ -10,22 +10,28 @@ let asanaConfig = {
   ASANA_WORKSPACE_ID: process.env.ASANA_WORKSPACE_ID
 };
 
+let postgresConfig= {
+  POSTGRES_URL: process.env.POSTGRES_URL
+}
+
 let SLACK_WEB_HOOK = process.env.SLACK_WEB_HOOK;
 let SLACK_METADATA_WEB_HOOK = process.env.SLACK_METADATA_WEB_HOOK;
 let PROCESS_BLOGS = process.env.PROCESS_BLOGS;
 
-let Notifier = function(_slack, _asana){
+let Notifier = function(_slack, _asana, _postgres){
   if (_slack){
     slack = _slack;
   }
 
   var asana = _asana ? _asana : new AsanaNotifier(asanaConfig);
+  var postgres = _postgres ? _postgres : new PostgresNotifier(postgresConfig);
 
   var getLink = function(task){
     return 'https://app.asana.com/0/' + asanaConfig.ASANA_PROJECT_ID + '/' + task.id;
   };
 
   this.processArticle = function(article){
+    postgres.insertItem(article);
     return asana.createTask(article).then(task => {
       return slack.postTask(SLACK_WEB_HOOK, task, getLink(task));
     });

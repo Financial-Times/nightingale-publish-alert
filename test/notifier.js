@@ -27,9 +27,13 @@ let mockAsana = {
   }
 };
 
+let mockPostgres = {
+    insertItem: function (article) { return; }
+};
+
 describe('Notifier', function () {
   it('Should add tasks and notify slack group', function (done) {
-    var notifier = new Notifier(mockSlack, mockAsana);
+    var notifier = new Notifier(mockSlack, mockAsana, mockPostgres);
     var article = {
       "url": "http://www.ft.com/cms/s/2c67f078-2c6d-11e5-8613-e7aedbb7bdb7.html",
       "publishedDate": "2015-07-17T14:05:32.000Z",
@@ -61,7 +65,7 @@ describe('Notifier', function () {
   });
 
   it('Should notify slack group about missing metadata', function (done) {
-    var notifier = new Notifier(mockSlack, mockAsana);
+    var notifier = new Notifier(mockSlack, mockAsana, mockPostgres);
     var article = {
       "url": "http://www.ft.com/cms/s/2c67f078-2c6d-11e5-8613-e7aedbb7bdb7.html",
       "publishedDate": "2015-07-17T14:05:32.000Z",
