@@ -27,7 +27,7 @@ let mockConnection = sinon.mock(connection.client);
 
 let mockClient = {
   connect: function(task){
-    return Promise.resolve(mockConnection);
+    return Promise.resolve(connection);
   }
 }
 

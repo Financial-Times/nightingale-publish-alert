@@ -15,7 +15,7 @@ function PostgresNotifier(config, _pgClient){
           return connection.client.query({text: 'INSERT INTO nightingale_chart VALUES ($1, $2, $3)',
                  values:[article.url, article.publishedDate, imageLinks]});
         }).catch( error => {
-            logger.log('error', 'Could not insert postgress notification for article %s error: %s' + article.url, error);
+            logger.log('error', 'Could not insert postgress notification for article %s error: %s', article.url, error);
         });
     }
 }
