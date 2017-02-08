@@ -22,7 +22,10 @@ function pollForCharts() {
   poller.poll()
   .then(function(articles) {
     filterArticles(articles, {'hasNightingale': true})
-      .map(notifier.processArticle);
+      .map(articles => {
+        notifier.processArticle(articles)
+        notifier.persistArticle(articles)
+      })
     filterArticles(articles, function(a) {
       return a['metadata']['validMetadata'] == false;
     }).map(notifier.processMetadata)

@@ -2,6 +2,7 @@
 
 let AsanaNotifier = require('./asana');
 var slack = require('./slack');
+var PostgresNotifier = require('./postgres');
 
 let asanaConfig = {
   ASANA_API_KEY: process.env.ASANA_API_KEY,
@@ -11,7 +12,7 @@ let asanaConfig = {
 };
 
 let postgresConfig= {
-  POSTGRES_URL: process.env.POSTGRES_URL
+  DATABASE_URL: process.env.DATABASE_URL
 }
 
 let SLACK_WEB_HOOK = process.env.SLACK_WEB_HOOK;
@@ -31,11 +32,14 @@ let Notifier = function(_slack, _asana, _postgres){
   };
 
   this.processArticle = function(article){
-    postgres.insertItem(article);
     return asana.createTask(article).then(task => {
       return slack.postTask(SLACK_WEB_HOOK, task, getLink(task));
     });
   };
+
+  this.persistArticle = (article) => {
+    return postgres.insertItem(article);
+  }
 
   this.processMetadata = function (article) {
     if (PROCESS_BLOGS==true || article.metadata.isBlog==false) {
