@@ -38,7 +38,7 @@ let Notifier = function(_slack, _asana, _postgres){
   };
 
   this.persistArticle = (article) => {
-    return postgres.insertItem(article);
+    return postgres.persist(article);
   }
 
   this.processMetadata = function (article) {

@@ -42,7 +42,7 @@ describe('Postgress', function () {
      values: ['http://asana.com/url', '2015-07-17T14:05:32.000Z', ['http://asana.com/image']]});
 
   it('Should insert an attachment.', function(done) {
-    postgres.insertItem(
+    postgres.persist(
     {
       url: 'http://asana.com/url',
       images: [
