@@ -4,9 +4,3 @@ test:
 machine:
   node:
     version: 4.4.7
-
-deployment:
-  production:
-    branch: master
-    heroku:
-      appname: nightingale-pub-alert

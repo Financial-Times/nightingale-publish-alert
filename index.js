@@ -8,6 +8,10 @@ app.get('/', function (req, res) {
   res.send('Nightingale Publish Alert Service OK!');
 });
 
+app.get('/report', function (req, res) {
+  let {startdate, enddate} = req.query
+  notifier.queryDB(startdate, enddate).then(result => res.json(result))
+});
 
 var Poller = require('./src/poller');
 var Notifier = require('./src/notifier');
@@ -22,7 +26,10 @@ function pollForCharts() {
   poller.poll()
   .then(function(articles) {
     filterArticles(articles, {'hasNightingale': true})
-      .map(notifier.processArticle);
+      .map(articles => {
+        notifier.processArticle(articles)
+        notifier.persistArticle(articles)
+      })
     filterArticles(articles, function(a) {
       return a['metadata']['validMetadata'] == false;
     }).map(notifier.processMetadata)

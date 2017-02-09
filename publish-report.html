@@ -1,0 +1,30 @@
+<html>
+<head>
+  <title>publish report</title>
+  <style>
+    input, button, select{
+      display: block;
+      margin-bottom: 1.25em;
+      width: 150px;
+      border: 1px solid black;
+      border-right: 2px solid black;
+      border-bottom: 2px solid black;
+
+    }
+  </style>
+</head>
+  <body>
+    <form action="">
+      <label for="startdate">startdate:</label>
+      <input id="startdate" name="startdate" type="date">
+      <label for="enddate">enddate:</label>
+      <input id="enddate" name="enddate" type="date">
+      <label for="interval">interval:</label>
+      <select name="interval">
+        <option value="Monthly">Monthly</option>
+        <option value="combined">Combined</option>
+      </select>
+      <button>Submit</button>
+    </form>
+  </body>
+</html>
