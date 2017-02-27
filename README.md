@@ -29,5 +29,8 @@ Use `foreman start` to start up the service. This will load the .env file and st
 
 See DEPLOYMENT.md
 
+## Reports endpoint
+ `/report?startdate=yyyy-mm-dd&enddate=yyyy-mm-0dd`
+
 
 
