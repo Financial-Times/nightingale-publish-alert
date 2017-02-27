@@ -18,6 +18,7 @@ ASANA_WORKSPACE_ID=<the workspace id to post alerts to>
 ASANA_PROJECT_ID=<the project id to post alerts to>
 SEARCH_BACK_MS=5000 # How many milliseconds to search notifications back in time for (i.e. when you start the app again)
 SLACK_WEB_HOOK=<Slack web hook full URL>
+DATABASE_URL=<login url for postgres db>
 ```
 
 ## Running
@@ -27,6 +28,9 @@ Use `foreman start` to start up the service. This will load the .env file and st
 ## Deployment
 
 See DEPLOYMENT.md
+
+## Reports endpoint
+ `/report?startdate=yyyy-mm-dd&enddate=yyyy-mm-0dd`
 
 
 
