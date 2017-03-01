@@ -2,7 +2,8 @@
 
 let logger = require('./logger');
 let Pgb = require("pg-bluebird");
-let QUERY = 'INSERT INTO nightingale_chart VALUES ($1, $2, $3)'
+let QUERY = 'INSERT INTO nightingale_chart VALUES ($1, $2, $3)';
+let cnn;
 
 function PostgresNotifier(config){
 
@@ -11,7 +12,11 @@ function PostgresNotifier(config){
         logger.log('info', 'Inserting Postgress notification for article %s', article.url);
 
         return pgb.connect(config.DATABASE_URL)
-        .then(connection => insertItem(connection, article))
+        .then(connection => {
+          cnn = connection
+          insertItem(cnn, article)
+        })
+          .finally(() => cnn.done())
           .catch( error => {
             logger.log('error', 'Could not insert postgress notification for article %s error: %s', JSON.stringify(article), error);
         });
@@ -21,8 +26,11 @@ function PostgresNotifier(config){
       var pgb = new Pgb();
       return pgb.connect(config.DATABASE_URL)
         .then(connection => {
-          return connection.client.query({text: "select to_char(publish_date, 'Mon-YYYY') AS Month, count(distinct image_id) as \"charts published\"from nightingale_chart where publish_date BETWEEN $1 AND $2 group by 1 order by 1 desc", values: [startdate, enddate]})
-        }).catch( error => {
+          cnn = connection
+          return cnn.client.query({text: "select to_char(publish_date, 'Mon-YYYY') AS Month, count(distinct image_id) as \"charts published\"from nightingale_chart where publish_date BETWEEN $1 AND $2 group by 1 order by 1 desc", values: [startdate, enddate]})
+        })
+        .finally(() => cnn.done())
+        .catch( error => {
           logger.log('error', 'error querying database %s', error);
         });
     }
