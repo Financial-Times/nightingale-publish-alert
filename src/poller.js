@@ -11,10 +11,9 @@ var cheerio = require('cheerio');
 var _ = require('underscore');
 var path = require('path');
 let NotificationsApi = require('./ft-api');
-let checkForMetadataV1 = require('./metadata-validator');
+let checkForMetadataV2 = require('./metadata-validator');
 
 var lastPolled = null;
-var ftApiURLRoot = process.env.FT_API_URL;
 var stamperUrl = process.env.STAMPER_URL;
 var stamper = url.parse(stamperUrl);
 var API_KEY = process.env.FT_API_KEY;
@@ -59,15 +58,13 @@ function filterOutDeletes(notifications) {
 
 function processNotification(notification) {
 
-  return fetchArticleV1(notification).then(function (articleV1) {
-    return [articleV1, fetchArticleV2(notification)];
-  }).spread(function(articleV1, articleV2) {
-      logger.log('verbose', 'Article content and metadata fetched', articleV1.requestUrl, articleV2.id);
-      return Q.all([checkForMetadataV1(articleV1), checkForPNGs(articleV2)])
-        .spread(function(articleMetadataV1, articleImages) {
-          logger.log('verbose', 'Notification processed', notification.id, articleMetadataV1.id);
+  return fetchArticleV2(notification).then(function(articleV2) {
+      logger.log('verbose', 'Article content and metadata fetched', articleV2.id);
+      return Q.all([checkForMetadataV2(articleV2), checkForPNGs(articleV2)])
+        .spread(function(articleMetadataV2, articleImages) {
+          logger.log('verbose', 'Notification processed', notification.id, articleMetadataV2.id);
           articleImages = articleImages || {};
-          articleImages.metadata = articleMetadataV1;
+          articleImages.metadata = articleMetadataV2;
           return articleImages;
         });
     }).catch(function (error) {
@@ -85,18 +82,9 @@ function fetchArticleV2(notification) {
   return fetchArticle(notificationUrl);
 }
 
-function fetchArticleV1(notification) {
-  let notificationUrl = notification.apiUrl;
-  if (notificationUrl.includes("/enriched")) {
-    notificationUrl = notificationUrl.replace("/enriched", "/");
-  }
-  notificationUrl = notificationUrl.replace("content", "content/items/v1");
-  return fetchArticle(notificationUrl);
-}
-
 function fetchArticle(articleUrl) {
   var deferred = Q.defer();
-  logger.log('verbose', 'Loading article V1 %s', articleUrl);
+  logger.log('verbose', 'Loading article %s', articleUrl);
   request
     .get(articleUrl)
     .query({

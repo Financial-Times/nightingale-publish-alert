@@ -17,7 +17,6 @@ let postgresConfig= {
 
 let SLACK_WEB_HOOK = process.env.SLACK_WEB_HOOK;
 let SLACK_METADATA_WEB_HOOK = process.env.SLACK_METADATA_WEB_HOOK;
-let PROCESS_BLOGS = process.env.PROCESS_BLOGS;
 
 let Notifier = function(_slack, _asana, _postgres){
   if (_slack){
@@ -51,13 +50,8 @@ let Notifier = function(_slack, _asana, _postgres){
       })});
   }
 
-  this.processMetadata = function (article) {
-    if (PROCESS_BLOGS==true || article.metadata.isBlog==false) {
-      return slack.postMetadataTask(SLACK_METADATA_WEB_HOOK, article);
-    }
-    else
-      return null;
-  }
+  this.processMetadata =  (article) => slack.postMetadataTask(SLACK_METADATA_WEB_HOOK, article);
+
 };
 
 module.exports = Notifier;
