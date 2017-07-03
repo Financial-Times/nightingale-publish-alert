@@ -1,31 +1,38 @@
 "use strict";
 
-var checkForMetadataV1 = require('../src/metadata-validator');
+var checkForMetadataV2 = require('../src/metadata-validator');
 var expect = require('chai').expect;
 
-describe('checkForMetadataV1', function () {
-  it('Should ignore authors validation for white listed brands', function (done) {
-    let article = {
-      item: {
-        id: "test id",
-        title: {title: "some title"},
-        location: {uri: "test uri"},
-        metadata: {
-          primarySection: {term: "test primarySection"},
-          primaryTheme: {term: "test primaryTheme"},
-          authors: [],
-          brand: [
-            {
-              term: {
-                name: "Lex",
-                taxonomy: "brand"
-              }
-            }
-          ]
-        }
-      }
+describe('checkForMetadataV2',function () {
+  it('Should ignore authors validation for white listed brands',function (done) {
+    let article ={
+      id: "http://www.ft.com/thing/test id",
+      title: {title: "some title"},
+      location: {uri: "test uri"},
+      annotations: [
+        {
+          "predicate": "http://www.ft.com/ontology/annotation/about",
+          "prefLabel": "the person topic",
+          "type": "PERSON",
+        },
+        {
+          "predicate": "http://www.ft.com/ontology/annotation/about",
+          "prefLabel": "the topic",
+          "type": "TOPIC",
+        },
+        {
+          "predicate": "http://www.ft.com/ontology/classification/isPrimarilyClassifiedBy",
+          "prefLabel": "the section",
+          "type": "SECTION",
+        },
+        {
+          "predicate": "http://www.ft.com/ontology/classification/isClassifiedBy",
+          "prefLabel": "FT View",
+          "type": "BRAND",
+        },
+      ]
     };
-    let result = checkForMetadataV1(article);
+    let result = checkForMetadataV2(article);
     expect(result.hasAuthors).to.equal(false);
     expect(result.hasPrimarySection).to.equal(true);
     expect(result.hasPrimaryTheme).to.equal(true);
@@ -33,28 +40,35 @@ describe('checkForMetadataV1', function () {
     done();
   });
 
-  it('Should set validMetadata to false for authors validation for other brands', function (done) {
-    let article = {
-      item: {
-        id: "test id",
-        title: {title: "some title"},
-        location: {uri: "test uri"},
-        metadata: {
-          primarySection: {term: "test primarySection"},
-          primaryTheme: {term: "test primaryTheme"},
-          authors: [],
-          brand: [
-            {
-              term: {
-                name: "test brand",
-                taxonomy: "brand"
-              }
-            }
-          ]
-        }
-      }
+  it('Should set validMetadata to false for authors validation for other brands',function (done) {
+    let article ={
+      id: "http://www.ft.com/thing/test id",
+      title: {title: "some title"},
+      location: {uri: "test uri"},
+      annotations: [
+        {
+          "predicate": "http://www.ft.com/ontology/annotation/about",
+          "prefLabel": "the person topic",
+          "type": "PERSON",
+        },
+        {
+          "predicate": "http://www.ft.com/ontology/annotation/about",
+          "prefLabel": "the topic",
+          "type": "TOPIC",
+        },
+        {
+          "predicate": "http://www.ft.com/ontology/classification/isPrimarilyClassifiedBy",
+          "prefLabel": "the section",
+          "type": "SECTION",
+        },
+        {
+          "predicate": "http://www.ft.com/ontology/classification/isClassifiedBy",
+          "prefLabel": "the section",
+          "type": "Brand",
+        },
+      ]
     };
-    let result = checkForMetadataV1(article);
+    let result = checkForMetadataV2(article);
     expect(result.hasAuthors).to.equal(false);
     expect(result.hasPrimarySection).to.equal(true);
     expect(result.hasPrimaryTheme).to.equal(true);
