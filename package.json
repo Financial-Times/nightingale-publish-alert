@@ -7,7 +7,9 @@
     "node": "~6.11.x"
   },
   "scripts": {
-    "test": "mocha"
+    "test": "mocha",
+    "precommit": "node_modules/.bin/secret-squirrel",
+    "commitmsg": "node_modules/.bin/secret-squirrel-commitmsg"
   },
   "author": "",
   "license": "ISC",
@@ -33,7 +35,9 @@
     "winston": "^1.0.1"
   },
   "devDependencies": {
+    "@financial-times/secret-squirrel": "^2.5.10",
     "chai": "^3.2.0",
+    "husky": "^0.14.3",
     "mocha": "^2.2.5",
     "sinon": "^1.17.7",
     "superagent-mock": "^1.10.0"
