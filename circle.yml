@@ -3,4 +3,4 @@ test:
     - touch .env
 machine:
   node:
-    version: 6.11.1
+    version: 8.9.4
