@@ -1,6 +1,0 @@
-test:
-  pre:
-    - touch .env
-machine:
-  node:
-    version: 8.9.4
